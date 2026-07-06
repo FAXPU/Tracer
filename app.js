@@ -1,5 +1,7 @@
 const todoForm = document.getElementById('todo-form');
 const taskInput = document.getElementById('task-input');
+const priorityInput = document.getElementById('priority-input');
+const searchInput = document.getElementById('search-input');
 const taskList = document.getElementById('task-list');
 const taskCount = document.getElementById('task-count');
 const clearCompletedBtn = document.getElementById('clear-completed-btn');
@@ -7,22 +9,31 @@ const themeToggle = document.getElementById('theme-toggle');
 const filterBtns = document.querySelectorAll('.filter-btn');
 
 let currentFilter = 'all';
+let searchQuery = '';
 
-// Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-  loadTasks();
+  render();
   initTheme();
 });
 
 todoForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = taskInput.value.trim();
+  const priority = priorityInput.value;
   if (text) {
-    addTask(text, false);
-    saveTaskToLocalStorage(text, false);
+    const tasks = getTasksFromStorage();
+    // Unique ID allows us to safely find items even while filtering or searching
+    tasks.push({ id: Date.now(), text, completed: false, priority });
+    localStorage.setItem('tasks', JSON.stringify(tasks));
     taskInput.value = '';
     render();
   }
+});
+
+// Real-time Search Engine logic
+searchInput.addEventListener('input', (e) => {
+  searchQuery = e.target.value.toLowerCase().trim();
+  render();
 });
 
 clearCompletedBtn.addEventListener('click', () => {
@@ -48,34 +59,35 @@ filterBtns.forEach(btn => {
   });
 });
 
-// Primary UI Controller
 function render() {
   taskList.innerHTML = '';
   const tasks = getTasksFromStorage();
   let activeCount = 0;
 
-  tasks.forEach((task, index) => {
+  tasks.forEach(task => {
     if (!task.completed) activeCount++;
 
-    // Apply Filter Logic
+    // 1. Filter Logic
     if (currentFilter === 'active' && task.completed) return;
     if (currentFilter === 'completed' && !task.completed) return;
 
-    createTaskRow(task, index);
+    // 2. Search Logic
+    if (searchQuery && !task.text.toLowerCase().includes(searchQuery)) return;
+
+    createTaskRow(task);
   });
 
   taskCount.textContent = `${activeCount} task${activeCount !== 1 ? 's' : ''} left`;
   
-  // Empty State Logic
   if (taskList.children.length === 0) {
     const msg = document.createElement('p');
     msg.className = 'empty-message';
-    msg.textContent = currentFilter === 'completed' ? "No completed items yet." : "Clean slate. Trace a new objective.";
+    msg.textContent = searchQuery ? "No matches found for your search." : "No trace of objectives here.";
     taskList.appendChild(msg);
   }
 }
 
-function createTaskRow(task, index) {
+function createTaskRow(task) {
   const li = document.createElement('li');
   li.className = `task-item ${task.completed ? 'completed' : ''}`;
 
@@ -86,7 +98,7 @@ function createTaskRow(task, index) {
   checkbox.type = 'checkbox';
   checkbox.className = 'task-checkbox';
   checkbox.checked = task.completed;
-  checkbox.addEventListener('change', () => toggleTask(index));
+  checkbox.addEventListener('change', () => toggleTask(task.id));
 
   const span = document.createElement('span');
   span.textContent = task.text;
@@ -94,33 +106,33 @@ function createTaskRow(task, index) {
   leftDiv.appendChild(checkbox);
   leftDiv.appendChild(span);
 
+  // Priority Badge Injection
+  const badge = document.createElement('span');
+  badge.className = `priority-badge ${task.priority}`;
+  badge.textContent = task.priority;
+
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'delete-btn';
   deleteBtn.textContent = 'Delete';
-  deleteBtn.addEventListener('click', () => deleteTask(index));
+  deleteBtn.addEventListener('click', () => deleteTask(task.id));
 
   li.appendChild(leftDiv);
+  li.appendChild(badge);
   li.appendChild(deleteBtn);
   taskList.appendChild(li);
 }
 
-// Data Utility Methods
-function addTask(text, completed) {
+function toggleTask(id) {
   const tasks = getTasksFromStorage();
-  tasks.push({ text, completed });
-  localStorage.setItem('tasks', JSON.stringify(tasks));
-}
-
-function toggleTask(index) {
-  const tasks = getTasksFromStorage();
-  tasks[index].completed = !tasks[index].completed;
+  const task = tasks.find(t => t.id === id);
+  if (task) task.completed = !task.completed;
   localStorage.setItem('tasks', JSON.stringify(tasks));
   render();
 }
 
-function deleteTask(index) {
-  const tasks = getTasksFromStorage();
-  tasks.splice(index, 1);
+function deleteTask(id) {
+  let tasks = getTasksFromStorage();
+  tasks = tasks.filter(t => t.id !== id);
   localStorage.setItem('tasks', JSON.stringify(tasks));
   render();
 }
@@ -128,8 +140,6 @@ function deleteTask(index) {
 function getTasksFromStorage() {
   return localStorage.getItem('tasks') ? JSON.parse(localStorage.getItem('tasks')) : [];
 }
-
-function loadTasks() { render(); }
 
 function initTheme() {
   const savedTheme = localStorage.getItem('theme') || 'light';
