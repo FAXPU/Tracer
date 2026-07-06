@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tracer - Task Management</title>
+  <title>Tracer - Premium Task Architecture</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,15 +14,31 @@
   <div class="app-container">
     <header>
       <div class="header-top">
-        <h1>Tracer</h1>
+        <div class="logo-area">
+          <h1>Tracer</h1>
+          <span class="version-tag">v2.0</span>
+        </div>
         <button id="theme-toggle" aria-label="Toggle Theme">🌙</button>
       </div>
       <p class="subtitle">Trace your productivity across any device.</p>
     </header>
 
     <main>
+      <div class="search-wrapper">
+        <input type="text" id="search-input" placeholder="🔍 Search tasks..." autocomplete="off">
+      </div>
+
       <form id="todo-form">
         <input type="text" id="task-input" placeholder="What needs to be done?" required autocomplete="off">
+        
+        <div class="select-wrapper">
+          <select id="priority-input" aria-label="Task Priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+
         <button type="submit" id="add-btn">Add Task</button>
       </form>
 
